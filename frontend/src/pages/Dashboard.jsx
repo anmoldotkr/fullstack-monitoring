@@ -1,52 +1,61 @@
-// pages/Dashboard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import TaskForm from '../components/TaskForm';
 import TaskCard from '../components/TaskCard';
+import { taskService } from '../services/api';
 import '../stylesheets/Dashboard.css';
 
-const Dashboard = ({onLogout}) => {
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: 'Configure AWS VPC Peering',
-      description: 'Set up cross-account routing tables and auto-approve rules.',
-      priority: 'High',
-      dueDate: '2026-08-15',
-      status: 'In Progress',
-    },
-    {
-      id: 2,
-      title: 'Optimize Docker Build Pipeline',
-      description: 'Cache layer dependencies in CodeBuild to reduce latency.',
-      priority: 'Medium',
-      dueDate: '2026-08-18',
-      status: 'Pending',
-    },
-    {
-      id: 3,
-      title: 'Database Schema Migration',
-      description: 'Run SQL dump verification scripts on staging instance.',
-      priority: 'Low',
-      dueDate: '2026-08-10',
-      status: 'Completed',
-    },
-  ]);
+const Dashboard = ({ onLogout }) => {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleAddTask = (newTask) => {
-    setTasks((prev) => [newTask, ...prev]);
+  const currentUser = JSON.parse(localStorage.getItem('user')) || { fullName: 'User' };
+
+  // Fetch tasks on initial render
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await taskService.getTasks();
+      setTasks(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteTask = (id) => {
-    setTasks((prev) => prev.filter((task) => task.id !== id));
+  const handleAddTask = async (newTaskData) => {
+    try {
+      const createdTask = await taskService.createTask(newTaskData);
+      setTasks((prev) => [createdTask, ...prev]);
+    } catch (err) {
+      alert(`Failed to add task: ${err.message}`);
+    }
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, status: newStatus } : task
-      )
-    );
+  const handleDeleteTask = async (id) => {
+    try {
+      await taskService.deleteTask(id);
+      setTasks((prev) => prev.filter((task) => task.id !== id));
+    } catch (err) {
+      alert(`Failed to delete task: ${err.message}`);
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const updatedTask = await taskService.updateTask(id, { status: newStatus });
+      setTasks((prev) =>
+        prev.map((task) => (task.id === id ? updatedTask : task))
+      );
+    } catch (err) {
+      alert(`Failed to update task: ${err.message}`);
+    }
   };
 
   const totalTasks = tasks.length;
@@ -55,10 +64,9 @@ const Dashboard = ({onLogout}) => {
 
   return (
     <div className="dashboard-layout">
-      <Navbar user={{ name: 'Anmol Kumar' }} onLogout={(onLogout) => alert('Logged out!')} />
+      <Navbar user={{ name: currentUser.fullName }} onLogout={onLogout} />
 
       <main className="dashboard-content">
-        {/* Stats Section */}
         <section className="stats-grid">
           <div className="stat-card">
             <h4>Total Tasks</h4>
@@ -74,13 +82,14 @@ const Dashboard = ({onLogout}) => {
           </div>
         </section>
 
-        {/* Create Task Section */}
         <TaskForm onAddTask={handleAddTask} />
 
-        {/* Task Cards Grid */}
         <section className="tasks-section">
           <h2>My Tasks</h2>
-          {tasks.length === 0 ? (
+          {error && <p className="error-message">{error}</p>}
+          {loading ? (
+            <p>Loading tasks from MySQL database...</p>
+          ) : tasks.length === 0 ? (
             <p className="no-tasks">No tasks available. Add a new task above!</p>
           ) : (
             <div className="task-grid">
