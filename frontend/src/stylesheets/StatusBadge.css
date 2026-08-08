@@ -1,0 +1,24 @@
+/* components/StatusBadge.css */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-completed {
+  background-color: #e6fffa;
+  color: #234e52;
+}
+
+.badge-in-progress {
+  background-color: #ebf8ff;
+  color: #2b6cb0;
+}
+
+.badge-pending {
+  background-color: #feefc3;
+  color: #744210;
+}
