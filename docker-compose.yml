@@ -1,4 +1,16 @@
 services:
+  # Reverse Proxy (Single Entry Point)
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: taskflow_nginx
+    restart: always
+    ports:
+      - "80:80" # Exposed to the Internet / Browser
+    depends_on:
+      - frontend
+      - backend
   frontend:
     build:
       context: ./frontend
@@ -7,8 +19,6 @@ services:
     restart: always
     env_file:
       - ./frontend/.env
-    ports:
-      - "81:80"
     depends_on:
       - backend
 
@@ -24,8 +34,6 @@ services:
       - DB_HOST=db
       - DB_USER=root
       - DB_PASSWORD=rootpassword
-    ports:
-      - "5000:5000"
     depends_on:
       db:
         condition: service_healthy
