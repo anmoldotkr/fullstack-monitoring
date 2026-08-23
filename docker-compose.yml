@@ -37,7 +37,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
   db:
     image: mysql:8.0
     container_name: taskflow_mysql
@@ -47,14 +46,80 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: taskflow_db
+      MYSQL_EXPORTER_USER: ${MYSQL_EXPORTER_USER}
+      MYSQL_EXPORTER_PASSWORD: ${MYSQL_EXPORTER_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
       - taskflow_mysql_data:/var/lib/mysql
+      - ./mysql/init-exporter.sql:/docker-entrypoint-initdb.d/init-exporter.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: taskflow_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yaml:/etc/prometheus/prometheus.yaml
+      - taskflow_prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+  node-exporter:
+    image: prom/node-exporter:v1
+    container_name: taskflow_node-exporter
+    restart: always
+    ports:
+      - "9100:9100"
+    volumes:
+          - /proc:/host/proc:ro
+          - /sys:/host/sys:ro
+          - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+
+  # cadvisor is used for checking container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: taskflow_cadvisor
+    restart: always
+    privileged: true
+    ports:
+      - "8080:8080"
+    volumes:
+          - /:/rootfs:ro
+          - /var/run:/var/run:ro
+          - /sys:/sys:ro
+          - /var/lib/docker/:/var/lib/docker:ro
+          - /dev/disk/:/dev/disk:ro
+          - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    devices:
+      - /dev/kmsg
+
+  # mysql-exporter for checking the other metrics related to mysql
+  mysql-exporter:
+    image: prom/mysqld-exporter
+    container_name: taskflow_mysql-exporter
+    restart: always
+    volumes:
+      - ./mysql/.my.cnf:/etc/.my.cnf:ro
+    command:
+          - "--config.my-cnf=/etc/.my.cnf"
+    ports:
+      - "9104:9104"
+    links:
+      - db
+    depends_on:
+      - db
 volumes:
   taskflow_mysql_data:
+  taskflow_prometheus:
