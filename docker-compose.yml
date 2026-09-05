@@ -7,7 +7,7 @@ services:
     container_name: taskflow_nginx
     restart: always
     ports:
-      - "80:80" # Exposed to the Internet / Browser
+      - "81:80" # Exposed to the Internet / Browser
     depends_on:
       - frontend
       - backend
@@ -89,7 +89,7 @@ services:
 
   # cadvisor is used for checking container metrics
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: taskflow_cadvisor
     restart: always
     privileged: true
@@ -120,6 +120,20 @@ services:
       - db
     depends_on:
       - db
+
+# Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: taskflow_grafana
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
 volumes:
   taskflow_mysql_data:
   taskflow_prometheus:
+  grafana_data:
