@@ -4,7 +4,7 @@
                                 │
                                 ▼
                    ┌──────────────────────────┐
-                   │   Nginx Reverse Proxy    │  <-- Exposed on Port 80
+                   │   Nginx Reverse Proxy    │  <-- Exposed on Port 81
                    │    (taskflow_proxy)      │
                    └────────────┬─────────────┘
                                 │
@@ -14,10 +14,10 @@
 ┌───────────────────┐                       ┌───────────────────┐
 │  React Frontend   │                       │  Node.js Backend  │
 │(taskflow_frontend)│                       │(taskflow_backend) │
-│     Port 80       │                       │     Port 5000     │
+│     Port 81       │                       │     Port 5000     │
 └───────────────────┘                       └─────────┬─────────┘
   (Serves JS/HTML)                                    │
-                                                      │ (Docker Network: "db:3306")
+                                                      │ (Docker Network: "db:3307")
                                                       ▼
                                             ┌───────────────────┐
                                             │  MySQL Database   │
@@ -37,9 +37,9 @@
 
 ```
 
-Browser → http://localhost/login
+Browser → http://localhost:81/login
   ↓
-Nginx (Port 80) checks URL
+Nginx (Port 81) checks URL
   ↓
 Not /api/ → Forward to Frontend
   ↓
@@ -48,9 +48,9 @@ Frontend serves login page
 
 2. User Submits Login Form
 ```
-Browser → http://localhost/api/auth/login
+Browser → http://localhost:81/api/auth/login
   ↓
-Nginx (Port 80) checks URL
+Nginx (Port 81) checks URL
   ↓
 Starts with /api/ → Forward to Backend
   ↓
@@ -88,7 +88,7 @@ Response sent back to browser
 **Your Answer:**
 
 > "Two main reasons: **Security** and **CORS**.
-> 1. **Security & Isolation:** We don't need to expose Port 5000 or Port 3306 to the public internet. Only Nginx listens on Port 80, keeping Node.js and MySQL hidden inside Docker's internal network.
+> 1. **Security & Isolation:** We don't need to expose Port 5000 or Port 3307 to the public internet. Only Nginx listens on Port 81, keeping Node.js and MySQL hidden inside Docker's internal network.
 > 2. **No CORS Issues:** By using Nginx as a reverse proxy, both the React UI assets (`/`) and API requests (`/api/`) originate from the same host and port (`http://localhost`). The browser sees it as a single origin, completely eliminating CORS errors without extra backend headers."
 > 
 > 
