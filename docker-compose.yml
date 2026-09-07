@@ -72,6 +72,8 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      # - '--web.enable-remote-write-receiver' # Add Remote Write API for Alloy attempts to send metrics to /api/v1/write
+
   node-exporter:
     image: prom/node-exporter:v1
     container_name: taskflow_node-exporter
@@ -133,7 +135,38 @@ services:
     depends_on:
       - prometheus
 
+# Loki 
+  loki:
+    image: grafana/loki:latest
+    container_name: taskflow_loki
+    restart: always
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+      - ./logging/local-config.yaml:/etc/loki/local-config.yaml:ro
+
+# Grafana Alloy
+  # alloy:
+  #   image: grafana/alloy:latest
+  #   container_name: taskflow_alloy
+  #   restart: always
+  #   ports:
+  #     - 12345:12345
+  #   command:
+  #     - run
+  #     - --server.http.listen-addr=127.0.0.1:12345 # locks to the local
+  #     - --storage.path=/var/lib/alloy/data
+  #     - /etc/alloy/config.alloy
+  #   volumes:
+  #     - ./config.alloy:/etc/alloy/config.alloy:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro # Needed for Docker log/metric discovery
+  #     - alloy_data:/var/lib/alloy/data
+
 volumes:
   taskflow_mysql_data:
   taskflow_prometheus:
   grafana_data:
+  # loki_data:
+  # alloy_data:

@@ -1,0 +1,65 @@
+// ==============================================================================
+// 1. DOCKER CONTAINER LOGS -> LOKI
+// ==============================================================================
+
+// Discover all running containers on the host Docker engine
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Tail logs (stdout/stderr) from discovered containers
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.filter_logs.receiver]
+}
+
+// Process logs: Parse JSON logs if applicable and clean up noise
+loki.process "filter_logs" {
+  // Optional: Add custom processing stages here (e.g., json parsing, log dropping)
+  forward_to = [loki.write.loki_endpoint.receiver]
+}
+
+// Push formatted log streams to Loki
+loki.write "loki_endpoint" {
+  endpoint {
+    // Replace 'taskflow_loki' with your Loki service or container name
+    url = "http://taskflow_loki:3100/loki/api/v1/push"
+  }
+}
+
+// ==============================================================================
+// 2. METRICS (HOST & CONTAINERS) -> PROMETHEUS
+// ==============================================================================
+
+// Replaces node-exporter: Collects Host CPU, Memory, Disk, and Network stats
+prometheus.exporter.unix "host_metrics" {}
+
+prometheus.scrape "scrape_host" {
+  targets    = prometheus.exporter.unix.host_metrics.targets
+  forward_to = [prometheus.remote_write.prometheus_endpoint.receiver]
+}
+
+// Override default job label to match Dashboard 1860 expectations
+  extra_metric_relabel_config {
+    target_label = "job"
+    replacement  = "node-exporter"
+  }
+
+// Replaces cAdvisor: Collects per-container CPU and Memory metrics
+prometheus.exporter.cadvisor "container_metrics" {
+  docker_host = "unix:///var/run/docker.sock"
+}
+
+prometheus.scrape "scrape_cadvisor" {
+  targets    = prometheus.exporter.cadvisor.container_metrics.targets
+  forward_to = [prometheus.remote_write.prometheus_endpoint.receiver]
+}
+
+// Remote write scraped metrics to Prometheus
+prometheus.remote_write "prometheus_endpoint" {
+  endpoint {
+    // Replace 'prometheus' with your Prometheus service or container name
+    url = "http://taskflow_prometheus:9090/api/v1/write"
+  }
+}
