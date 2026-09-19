@@ -7,59 +7,102 @@ discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
 }
 
+// Clean up container labels (strip leading slash from container name)
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/?(.*)"
+    target_label  = "container_name"
+  }
+}
+
 // Tail logs (stdout/stderr) from discovered containers
 loki.source.docker "docker_logs" {
   host       = "unix:///var/run/docker.sock"
-  targets    = discovery.docker.containers.targets
+  targets    = discovery.relabel.docker_logs.output
   forward_to = [loki.process.filter_logs.receiver]
 }
 
-// Process logs: Parse JSON logs if applicable and clean up noise
+// Process logs: Parse Docker JSON log wrapper
 loki.process "filter_logs" {
-  // Optional: Add custom processing stages here (e.g., json parsing, log dropping)
+  stage.docker {}
+
   forward_to = [loki.write.loki_endpoint.receiver]
 }
 
 // Push formatted log streams to Loki
 loki.write "loki_endpoint" {
   endpoint {
-    // Replace 'taskflow_loki' with your Loki service or container name
     url = "http://taskflow_loki:3100/loki/api/v1/push"
   }
 }
+
 
 // ==============================================================================
 // 2. METRICS (HOST & CONTAINERS) -> PROMETHEUS
 // ==============================================================================
 
 // Replaces node-exporter: Collects Host CPU, Memory, Disk, and Network stats
-prometheus.exporter.unix "host_metrics" {}
+prometheus.exporter.unix "host_metrics" {
+  disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
 
-prometheus.scrape "scrape_host" {
-  targets    = prometheus.exporter.unix.host_metrics.targets
-  forward_to = [prometheus.remote_write.prometheus_endpoint.receiver]
+  rootfs_path = "/rootfs" // Points to mounted host root filesystem
+
+  filesystem {
+    fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|tmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
+    mount_points_exclude = "^/(dev|proc|run/credentials/.+|sys|var/lib/docker/.+)($|/)"
+    mount_timeout        = "5s"
+  }
+
+  netclass {
+    ignored_devices = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
+
+  netdev {
+    device_exclude = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
 }
 
-// Override default job label to match Dashboard 1860 expectations
-  extra_metric_relabel_config {
+// Relabel rules to attach proper host/job labels for Dashboard 1860 compatibility
+discovery.relabel "integrations_node_exporter" {
+  targets = prometheus.exporter.unix.host_metrics.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = constants.hostname
+  }
+
+  // Dashboard 1860 filters by job="node-exporter" or job="node_exporter"
+  rule {
     target_label = "job"
     replacement  = "node-exporter"
   }
+}
+
+// Scrape Host Metrics (via relabeled targets)
+prometheus.scrape "scrape_host" {
+  targets         = discovery.relabel.integrations_node_exporter.output
+  forward_to      = [prometheus.remote_write.prometheus_endpoint.receiver]
+  scrape_interval = "15s"
+}
 
 // Replaces cAdvisor: Collects per-container CPU and Memory metrics
 prometheus.exporter.cadvisor "container_metrics" {
   docker_host = "unix:///var/run/docker.sock"
 }
 
+// Scrape Container Metrics
 prometheus.scrape "scrape_cadvisor" {
-  targets    = prometheus.exporter.cadvisor.container_metrics.targets
-  forward_to = [prometheus.remote_write.prometheus_endpoint.receiver]
+  targets         = prometheus.exporter.cadvisor.container_metrics.targets
+  forward_to      = [prometheus.remote_write.prometheus_endpoint.receiver]
+  scrape_interval = "15s"
 }
 
 // Remote write scraped metrics to Prometheus
 prometheus.remote_write "prometheus_endpoint" {
   endpoint {
-    // Replace 'prometheus' with your Prometheus service or container name
     url = "http://taskflow_prometheus:9090/api/v1/write"
   }
 }

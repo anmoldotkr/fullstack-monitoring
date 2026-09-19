@@ -24,3 +24,23 @@ schema_config:
       index:
         prefix: index_
         period: 24h
+
+limits_config:
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h  # 7 days (prevents the 'entry too far behind' drop)
+  creation_grace_period: 10m
+  ingestion_rate_mb: 10
+  ingestion_burst_size_mb: 20
+
+ingester:
+  # Explicit WAL Configuration for Crash Safety
+  wal:
+    enabled: true
+    dir: /loki/wal
+    flush_on_shutdown: true
+
+  # Chunk settings
+  chunk_idle_period: 30m
+  chunk_target_size: 1572864  # 1.5 MB
+  chunk_encoding: snappy
+  max_chunk_age: 2h
