@@ -72,40 +72,7 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-      # - '--web.enable-remote-write-receiver' # Add Remote Write API for Alloy attempts to send metrics to /api/v1/write
-
-  node-exporter:
-    image: prom/node-exporter:v1
-    container_name: taskflow_node-exporter
-    restart: always
-    ports:
-      - "9100:9100"
-    volumes:
-          - /proc:/host/proc:ro
-          - /sys:/host/sys:ro
-          - /:/rootfs:ro
-    command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--path.rootfs=/rootfs'
-
-  # cadvisor is used for checking container metrics
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: taskflow_cadvisor
-    restart: always
-    privileged: true
-    ports:
-      - "8080:8080"
-    volumes:
-          - /:/rootfs:ro
-          - /var/run:/var/run:ro
-          - /sys:/sys:ro
-          - /var/lib/docker/:/var/lib/docker:ro
-          - /dev/disk/:/dev/disk:ro
-          - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    devices:
-      - /dev/kmsg
+      - '--web.enable-remote-write-receiver' # Add Remote Write API for Alloy attempts to send metrics to /api/v1/write
 
   # mysql-exporter for checking the other metrics related to mysql
   mysql-exporter:
@@ -148,25 +115,29 @@ services:
       - ./logging/local-config.yaml:/etc/loki/local-config.yaml:ro
 
 # Grafana Alloy
-  # alloy:
-  #   image: grafana/alloy:latest
-  #   container_name: taskflow_alloy
-  #   restart: always
-  #   ports:
-  #     - 12345:12345
-  #   command:
-  #     - run
-  #     - --server.http.listen-addr=127.0.0.1:12345 # locks to the local
-  #     - --storage.path=/var/lib/alloy/data
-  #     - /etc/alloy/config.alloy
-  #   volumes:
-  #     - ./config.alloy:/etc/alloy/config.alloy:ro
-  #     - /var/run/docker.sock:/var/run/docker.sock:ro # Needed for Docker log/metric discovery
-  #     - alloy_data:/var/lib/alloy/data
+  alloy:
+    image: grafana/alloy:latest
+    container_name: taskflow_alloy
+    restart: always
+    privileged: true
+    ports:
+      - 12345:12345
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Needed for Docker logs & container metrics
+      - /:/rootfs:ro # Required for host metrics
+      - /sys:/sys:ro # Required for cAdvisor container metrics
+      - /var/lib/docker/:/var/lib/docker:ro # Required for cAdvisor storage stats
+      - alloy_data:/var/lib/alloy/data
 
 volumes:
   taskflow_mysql_data:
   taskflow_prometheus:
   grafana_data:
-  # loki_data:
-  # alloy_data:
+  loki_data:
+  alloy_data:
