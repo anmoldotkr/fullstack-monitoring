@@ -45,11 +45,11 @@ The project consists of a React frontend, Node.js backend, MySQL database, Nginx
                     │                  MONITORING STACK                   │
                     │                                                     │
                     │  ┌───────────────┐       ┌──────────────────────┐   │
-                    │  │ Node Exporter │──────▶│                      │   │
+                    │  │ grafana alloy │──────▶│                      │   │
                     │  └───────────────┘       │                      │   │
                     │                          │     Prometheus       │   │
                     │  ┌───────────────┐       │   Metrics Storage    │   │
-                    │  │    cAdvisor   │──────▶│                      │   │
+                    │  Grafana Alloy   │──────▶│                      │   │
                     │  └───────────────┘       │                      │   │
                     │                          └──────────┬───────────┘   │
                     │  ┌────────────────┐                 │               │
@@ -102,8 +102,7 @@ The application is divided into three major layers:
 
 * Prometheus
 * Grafana
-* Node Exporter
-* cAdvisor
+* Grafana Alloy
 * MySQL Exporter
 
 ### Logging & Alerting Layer
@@ -126,10 +125,10 @@ The application is divided into three major layers:
 | Container Orchestration | Docker Compose    |
 | Metrics Collection      | Prometheus        |
 | Visualization           | Grafana           |
-| Host Monitoring         | Node Exporter     |
-| Container Monitoring    | cAdvisor          |
+| Host Monitoring         | Grafana Alloy     |
+| Container Monitoring    | Grafana Alloy     |
 | MySQL Monitoring        | mysqld_exporter   |
-| Log Collection          | Grafana Alloy          |
+| Log Collection          | Grafana Alloy     |
 | Log Storage             | Loki              |
 | Alerting                | Alertmanager      |
 | Notification            | Slack / Email     |
