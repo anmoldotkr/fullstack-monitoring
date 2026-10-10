@@ -183,7 +183,7 @@ monitoring-project/
 │   │   └── loki-config.yml
 │   │
 │   └── Grafana Alloy/
-│       └── Grafana Alloy-config.yml
+│       └── config.alloy
 │
 ├── docker-compose.yml
 │
