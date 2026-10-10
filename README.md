@@ -70,7 +70,7 @@ The project consists of a React frontend, Node.js backend, MySQL database, Nginx
                     ┌─────────────────────────────────────────────────────┐
                     │                    LOGGING STACK                    │
                     │                                                     │
-                    │ Containers ──────▶ Promtail ──────▶ Loki            │
+                    │ Containers ──────▶ Grafana Alloy ──────▶ Loki            │
                     │                                         │           │
                     │                                         ▼           │
                     │                                      Grafana        │
@@ -109,7 +109,7 @@ The application is divided into three major layers:
 ### Logging & Alerting Layer
 
 * Loki
-* Promtail
+* Grafana Alloy
 * Alertmanager
 
 ---
@@ -129,7 +129,7 @@ The application is divided into three major layers:
 | Host Monitoring         | Node Exporter     |
 | Container Monitoring    | cAdvisor          |
 | MySQL Monitoring        | mysqld_exporter   |
-| Log Collection          | Promtail          |
+| Log Collection          | Grafana Alloy          |
 | Log Storage             | Loki              |
 | Alerting                | Alertmanager      |
 | Notification            | Slack / Email     |
@@ -177,16 +177,14 @@ monitoring-project/
 │   │   └── alertmanager.yml
 │   │
 │   └── exporters/
-│       ├── node-exporter/
-│       ├── cadvisor/
 │       └── mysql-exporter/
 │
 ├── logging/
 │   ├── loki/
 │   │   └── loki-config.yml
 │   │
-│   └── promtail/
-│       └── promtail-config.yml
+│   └── Grafana Alloy/
+│       └── Grafana Alloy-config.yml
 │
 ├── docker-compose.yml
 │
@@ -377,7 +375,7 @@ Metrics include:
 
 # Logging Architecture
 
-Application and container logs will be centralized using **Promtail and Loki**.
+Application and container logs will be centralized using **Grafana Alloy and Loki**.
 
 ```text
 ┌──────────────┐
@@ -397,7 +395,7 @@ Application and container logs will be centralized using **Promtail and Loki**.
 └──────┬───────┘
        │
        ▼
-   Promtail
+   Grafana Alloy
        │
        ▼
      Loki
@@ -678,13 +676,7 @@ services:
   loki:
     ...
 
-  promtail:
-    ...
-
-  node-exporter:
-    ...
-
-  cadvisor:
+  Grafana Alloy:
     ...
 
   mysql-exporter:
@@ -712,15 +704,14 @@ nginx
 prometheus
 grafana
 alertmanager
-node-exporter
-cadvisor
+Grafana-Alloy
 mysql-exporter
 ```
 
 ### Logging Network
 
 ```text
-promtail
+Grafana Alloy
 loki
 grafana
 ```
@@ -946,7 +937,7 @@ After starting the stack:
 
 | Service         | URL                        |
 | --------------- | -------------------------- |
-| Application     | `http://localhost`         |
+| Application     | `http://localhost:81`         |
 | Backend         | `http://localhost/api`     |
 | Backend Health  | `http://localhost/health`  |
 | Backend Metrics | `http://localhost/metrics` |
@@ -1153,7 +1144,7 @@ This project is designed to provide practical experience with:
 ### Logging
 
 * Loki
-* Promtail
+* Grafana Alloy
 * Centralized logging
 * Log querying
 
@@ -1224,7 +1215,7 @@ This project is designed to provide practical experience with:
                     ║ Containers                       ║
                     ║      │                           ║
                     ║      ▼                           ║
-                    ║   PROMTAIL                       ║
+                    ║   Grafana Alloy                       ║
                     ║      │                           ║
                     ║      ▼                           ║
                     ║     LOKI                         ║
