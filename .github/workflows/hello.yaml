@@ -3,7 +3,7 @@ on: [push]
 
 jobs:
   say-hello:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Print Hello world
         run: echo "Hello World!"
