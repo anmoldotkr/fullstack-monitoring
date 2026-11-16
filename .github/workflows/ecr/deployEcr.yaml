@@ -1,0 +1,46 @@
+name: Deploy ECR Repo
+
+on:
+  workflow_dispatch:
+      inputs:
+        environment:
+          description: 'Target Environment (e.g., dev, qa, prod)'
+          required: true
+          default: 'dev'
+          type: string
+        service:
+          description: 'Service Name (e.g., ecr, s3, vpc)'
+          required: true
+          default: 'ecr'
+          type: string
+# Required when using OIDC (role-to-assume) with AWS
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-ecr-template:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout-code
+        uses: actions/checkout@v4
+      
+      - name: configure aws creds
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        env:
+          AUDIENCE: ${{ secrets.AUDIENCE }}
+          REGION: ${{ vars.REGION }}
+          ASSUMEROLE: ${{ secrets.ASSUMEROLE }}
+      
+      - name: Deploying Cloudformation Template
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          SERVICE: ${{ inputs.service }}
+        run: |
+          aws cloudformation deploy \
+            --template-file ./aws/iac/ecr/ecr.yaml \
+            --stack-name "$ENVIRONMENT-$SERVICE" \
+            --parameter-overrides \
+              Environment="$ENVIRONMENT" \
+              Service="$SERVICE" \
+            --capabilities CAPABILITY_NAMED_IAM
