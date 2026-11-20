@@ -27,7 +27,7 @@ jobs:
       
       - name: configure aws creds
         uses: aws-actions/configure-aws-credentials@v6.3.0
-        env:
+        with:
           AUDIENCE: ${{ secrets.AUDIENCE }}
           REGION: ${{ vars.REGION }}
           ASSUMEROLE: ${{ secrets.ASSUMEROLE }}
