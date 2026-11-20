@@ -28,9 +28,9 @@ jobs:
       - name: configure aws creds
         uses: aws-actions/configure-aws-credentials@v6.3.0
         with:
-          AUDIENCE: ${{ secrets.AUDIENCE }}
-          REGION: ${{ vars.REGION }}
-          ASSUMEROLE: ${{ secrets.ASSUMEROLE }}
+          audience: ${{ secrets.AUDIENCE }}
+          aws-region: ${{ vars.REGION }}
+          role-to-assume: ${{ secrets.ASSUMEROLE }}
       
       - name: Deploying Cloudformation Template
         env:
