@@ -41,6 +41,6 @@ jobs:
             --template-file ./aws/iac/ecr/ecr.yaml \
             --stack-name "$ENVIRONMENT-$SERVICE" \
             --parameter-overrides \
-              Environment="$ENVIRONMENT" \
-              Service="$SERVICE" \
+                Environment="$ENVIRONMENT" \
+                Service="$SERVICE" \
             --capabilities CAPABILITY_NAMED_IAM
