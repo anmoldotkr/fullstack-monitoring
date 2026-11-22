@@ -39,7 +39,7 @@ jobs:
         run: |
           aws cloudformation deploy \
             --template-file ./aws/iac/ecr/ecr.yaml \
-            --stack-name "$ENVIRONMENT-$SERVICE" \
+            --stack-name "$ENVIRONMENT-$SERVICE-ecr" \
             --parameter-overrides \
                 environment="$ENVIRONMENT" \
                 service="$SERVICE" \
