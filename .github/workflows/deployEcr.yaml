@@ -4,14 +4,11 @@ on:
   workflow_dispatch:
       inputs:
         environment:
-          description: 'Target Environment (e.g., dev, qa, prod)'
           required: true
           default: 'dev'
           type: string
         service:
-          description: 'Service Name (e.g., ecr, s3, vpc)'
           required: true
-          default: 'ecr'
           type: string
 # Required when using OIDC (role-to-assume) with AWS
 permissions:
