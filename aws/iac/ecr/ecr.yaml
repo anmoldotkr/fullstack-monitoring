@@ -11,14 +11,11 @@ Parameters:
       - training
   service:
     Type: String
-    Description: The service name
-    Default: ecr
-
 Resources:
   repository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub ${environment}-${service}
+      RepositoryName: !Sub ${environment}-${service}-ecr
       ImageTagMutability: MUTABLE
       LifecyclePolicy:
         LifecyclePolicyText: |
@@ -47,7 +44,7 @@ Outputs:
     Description: A reference to the created ECR repository
     Value: !Ref repository
     Export:
-      Name: !Sub "${environment}-${service}"
+      Name: !Sub "${environment}-${service}-ecr"
   repositoryUri:
     Description: URI of the created ECR repository
     Value: !GetAtt repository.RepositoryUri
