@@ -1,12 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: "Template to create VPC, Subnets, Security Groups, Route Table Associations, and export them"
+Description: "Template to create VPC, Subnets, Route Table Associations, and export them"
 Parameters:
-  service:
-    Type: String
-    Description: "The environment for the resources (e.g., dev, test, prod)"
   environment:
     Type: String
-    Description: "The  name associated with the resources"
+    Default: dev
+    Description: "The environment name (e.g., dev, test, prod)"
+  service:
+    Type: String
+    Default: vpc
+    Description: "The service or component name associated with the resources"
+
 Resources:
   testVpc:
     Type: AWS::EC2::VPC
@@ -17,7 +20,21 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${environment}-${service}-VPC"
-  testSubnet1:
+
+  testInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-IGW"
+
+  attachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref testVpc
+      InternetGatewayId: !Ref testInternetGateway
+
+  testPubliceSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref testVpc
@@ -28,8 +45,9 @@ Resources:
         - !GetAZs ''
       Tags:
         - Key: Name
-          Value: !Sub "${environment}-${service}-Subnet1"
-  testSubnet2:
+          Value: !Sub "${environment}-${service}-PublicSubnet1"
+
+  testPubliceSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref testVpc
@@ -40,70 +58,135 @@ Resources:
         - !GetAZs ''
       Tags:
         - Key: Name
-          Value: !Sub "${environment}-${service}-Subnet2"
-  testInternetGateway:
-    Type: AWS::EC2::InternetGateway
-  attachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
+          Value: !Sub "${environment}-${service}-PublicSubnet2"
+
+  testNatIP:
+    Type: AWS::EC2::EIP
+    DependsOn: attachGateway
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-NatEIP"
+
+  testNatGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn: attachGateway
+    Properties:
+      AllocationId: !GetAtt testNatIP.AllocationId
+      SubnetId: !Ref testPubliceSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-NatGW"
+
+  testPrivateSubnet1:
+    Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref testVpc
-      InternetGatewayId: !Ref testInternetGateway
-  testRouteTable:
+      CidrBlock: 10.0.3.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-PrivateSubnet1"
+
+  testPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref testVpc
+      CidrBlock: 10.0.4.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select
+        - 1
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-PrivateSubnet2"
+
+  testPublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref testVpc
       Tags:
         - Key: Name
-          Value: !Sub "${environment}-${service}-RouteTable"
-  testRoute:
+          Value: !Sub "${environment}-${service}-PublicRouteTable"
+
+  testPublicRoute:
     Type: AWS::EC2::Route
-    DependsOn: testInternetGateway
+    DependsOn: attachGateway
     Properties:
-      RouteTableId: !Ref testRouteTable
+      RouteTableId: !Ref testPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref testInternetGateway
+
   subnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref testSubnet1
-      RouteTableId: !Ref testRouteTable
+      SubnetId: !Ref testPubliceSubnet1
+      RouteTableId: !Ref testPublicRouteTable
+
   subnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref testSubnet2
-      RouteTableId: !Ref testRouteTable
-  testSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
+      SubnetId: !Ref testPubliceSubnet2
+      RouteTableId: !Ref testPublicRouteTable
+
+  privateRouteTable:
+    Type: AWS::EC2::RouteTable
     Properties:
-      GroupDescription: Allow all inbound and outbound traffic
       VpcId: !Ref testVpc
-      SecurityGroupIngress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0 
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0 
       Tags:
         - Key: Name
-          Value: !Sub "${environment}-${service}-SecurityGroup"
+          Value: !Sub "${environment}-${service}-PrivateRouteTable"
+
+  privateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref privateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref testNatGateway
+
+  privateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref testPrivateSubnet1
+      RouteTableId: !Ref privateRouteTable
+
+  privateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref testPrivateSubnet2
+      RouteTableId: !Ref privateRouteTable
 Outputs:
   VPCId:
     Description: VPC ID
     Value: !Ref testVpc
     Export:
-      Name: testVpcId
-  Subnet1Id:
-    Description: Subnet 1 ID
-    Value: !Ref testSubnet1
+      Name: !Sub "${environment}-${service}-VpcId"
+  testPubliceSubnet1ID:
+    Description: Public Subnet 1 ID
+    Value: !Ref testPubliceSubnet1
     Export:
-      Name: testSubnet1Id
-  Subnet2Id:
-    Description: Subnet 2 ID
-    Value: !Ref testSubnet2
+      Name: !Sub "${environment}-${service}-Subnet1Id"
+  testPubliceSubnet2ID:
+    Description: Public Subnet 2 ID
+    Value: !Ref testPubliceSubnet2
     Export:
-      Name: testSubnet2Id
+      Name: !Sub "${environment}-${service}-Subnet2Id"
+  testPrivateSubnet1ID:
+    Description: Private Subnet 1 ID
+    Value: !Ref testPrivateSubnet1
+    Export:
+      Name: !Sub "${environment}-${service}-PrivateSubnet1Id"
+  testPrivateSubnet2ID:
+    Description: Private Subnet 2 ID
+    Value: !Ref testPrivateSubnet2
+    Export:
+      Name: !Sub "${environment}-${service}-PrivateSubnet2Id"
   SecurityGroupId:
     Description: Security Group ID
     Value: !Ref testSecurityGroup
     Export:
-      Name: testSecurityGroupId
+      Name: !Sub "${environment}-${service}-SecurityGroupId"
