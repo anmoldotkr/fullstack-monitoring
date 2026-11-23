@@ -185,8 +185,3 @@ Outputs:
     Value: !Ref testPrivateSubnet2
     Export:
       Name: !Sub "${environment}-${service}-PrivateSubnet2Id"
-  SecurityGroupId:
-    Description: Security Group ID
-    Value: !Ref testSecurityGroup
-    Export:
-      Name: !Sub "${environment}-${service}-SecurityGroupId"
