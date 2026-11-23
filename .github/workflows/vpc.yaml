@@ -36,7 +36,7 @@ jobs:
         run: |
           aws cloudformation deploy \
             --template-file ./aws/iac/vpc/vpc.yaml \
-            --stack-name "$ENVIRONMENT-$SERVICE-ecr" \
+            --stack-name "$ENVIRONMENT-$SERVICE-vpc" \
             --parameter-overrides \
                 environment="$ENVIRONMENT" \
                 service="$SERVICE" \
