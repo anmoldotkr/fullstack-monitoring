@@ -74,7 +74,7 @@ Resources:
   backendTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub "${environment}-${service}-be-tg"
+      Name: !Sub "${environment}-${service}-backend-tg"
       Port: 5000
       Protocol: HTTP
       TargetType: instance
