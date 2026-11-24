@@ -36,7 +36,7 @@ jobs:
         run: |
           aws cloudformation deploy \
             --template-file ./aws/iac/alb/alb.yaml \
-            --stack-name "$ENVIRONMENT-$SERVICE-vpc" \
+            --stack-name "$ENVIRONMENT-$SERVICE-alb" \
             --parameter-overrides \
                 environment="$ENVIRONMENT" \
                 service="$SERVICE" \
