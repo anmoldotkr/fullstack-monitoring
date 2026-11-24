@@ -22,7 +22,7 @@ Resources:
     Properties:
       GroupDescription: Allow HTTP inbound traffic to ALB
       VpcId:
-        Fn::ImportValue: !Sub "${environment}-${vpcStackService}-VpcId"
+        Fn::ImportValue: !Sub "${environment}-infra-VpcId"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
