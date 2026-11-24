@@ -38,7 +38,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     DependsOn: testAlbSecurityGroup
     Properties:
-      Name: !Sub "${environment}-${service}-alb"
+      Name: !Sub "${environment}-${service}"
       Type: application
       Scheme: internet-facing
       IpAddressType: ipv4
@@ -49,13 +49,13 @@ Resources:
         - Fn::ImportValue: !Sub "${environment}-infra-Subnet2Id"
       Tags:
         - Key: Name
-          Value: !Sub "${environment}-${service}-alb"
+          Value: !Sub "${environment}-${service}"
 
   # 3. Target Groups (referenced by ListenerRules below)
   frontendTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Sub "${environment}-${service}-fe-tg"
+      Name: !Sub "${environment}-${service}-frontend-tg"
       Port: 80
       Protocol: HTTP
       TargetType: instance
