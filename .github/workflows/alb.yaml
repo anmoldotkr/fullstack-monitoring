@@ -1,0 +1,43 @@
+name: Deploy LoadBlancer
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: string
+      service:
+        required: true
+        type: string
+
+# Requried when using OIDC (role-to-assume) with AWS
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-vpc:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout-code
+        uses: actions/checkout@v4
+      
+      - name: configure aws 
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          aws-region: ${{ vars.REGION }}
+          audience: ${{ secrets.AUDIENCE }}
+          role-to-assume: ${{ secrets.ASSUMEROLE }}
+      
+      - name: Deploy CLoudformation template
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          SERVICE: ${{ inputs.service }}
+        run: |
+          aws cloudformation deploy \
+            --template-file ./aws/iac/alb/alb.yaml \
+            --stack-name "$ENVIRONMENT-$SERVICE-vpc" \
+            --parameter-overrides \
+                environment="$ENVIRONMENT" \
+                service="$SERVICE" \
+            --capabilities CAPABILITY_NAMED_IAM
