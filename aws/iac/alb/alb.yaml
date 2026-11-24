@@ -45,8 +45,8 @@ Resources:
       SecurityGroups:
         - !Ref testAlbSecurityGroup
       Subnets:
-        - Fn::ImportValue: !Sub "${environment}-${vpcStackService}-Subnet1Id"
-        - Fn::ImportValue: !Sub "${environment}-${vpcStackService}-Subnet2Id"
+        - Fn::ImportValue: !Sub "${environment}-infra-Subnet1Id"
+        - Fn::ImportValue: !Sub "${environment}-infra-Subnet2Id"
       Tags:
         - Key: Name
           Value: !Sub "${environment}-${service}-alb"
@@ -60,7 +60,7 @@ Resources:
       Protocol: HTTP
       TargetType: instance
       VpcId:
-        Fn::ImportValue: !Sub "${environment}-${vpcStackService}-VpcId"
+        Fn::ImportValue: !Sub "${environment}-infra-VpcId"
       HealthCheckEnabled: true
       HealthCheckProtocol: HTTP
       HealthCheckPort: "80"
@@ -79,7 +79,7 @@ Resources:
       Protocol: HTTP
       TargetType: instance
       VpcId:
-        Fn::ImportValue: !Sub "${environment}-${vpcStackService}-VpcId"
+        Fn::ImportValue: !Sub "${environment}-infra-VpcId"
       HealthCheckEnabled: true
       HealthCheckProtocol: HTTP
       HealthCheckPort: "5000"
