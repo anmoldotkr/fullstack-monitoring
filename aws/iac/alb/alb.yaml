@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template to create ALB Security Group, Application Load Balancer, Target Groups, and Listener Rules"
+
+Parameters:
+  environment:
+    Type: String
+    Default: dev
+    Description: "The environment name (e.g., dev, test, prod)"
+  service:
+    Type: String
+    Default: app
+    Description: "The service or component name associated with the resources"
+  vpcStackService:
+    Type: String
+    Default: vpc
+    Description: "Service name used when exporting the VPC stack outputs"
+
+Resources:
+  # 1. Security Group for the ALB (allows HTTP port 80 from internet)
+  testAlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP inbound traffic to ALB
+      VpcId:
+        Fn::ImportValue: !Sub "${environment}-${vpcStackService}-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP traffic from internet
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-alb-sg"
+
+  # 2. Application Load Balancer creation
+  testAppLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: testAlbSecurityGroup
+    Properties:
+      Name: !Sub "${environment}-${service}-alb"
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !Ref testAlbSecurityGroup
+      Subnets:
+        - Fn::ImportValue: !Sub "${environment}-${vpcStackService}-Subnet1Id"
+        - Fn::ImportValue: !Sub "${environment}-${vpcStackService}-Subnet2Id"
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-alb"
+
+  # 3. Target Groups (referenced by ListenerRules below)
+  frontendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${environment}-${service}-fe-tg"
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      VpcId:
+        Fn::ImportValue: !Sub "${environment}-${vpcStackService}-VpcId"
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: "80"
+      HealthCheckPath: /
+      Matcher:
+        HttpCode: "200-399"
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-frontend-tg"
+
+  backendTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${environment}-${service}-be-tg"
+      Port: 5000
+      Protocol: HTTP
+      TargetType: instance
+      VpcId:
+        Fn::ImportValue: !Sub "${environment}-${vpcStackService}-VpcId"
+      HealthCheckEnabled: true
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: "5000"
+      HealthCheckPath: /api/health
+      Matcher:
+        HttpCode: "200-399"
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}-backend-tg"
+
+  # 4. ALB Listener on Port 80
+  albHttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref testAppLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            StatusCode: "404"
+            ContentType: text/plain
+            MessageBody: Page not found
+
+  # 5. Path-Based Listener Rules
+  backendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref albHttpListener
+      Priority: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /api/*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref backendTargetGroup
+
+  frontendListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref albHttpListener
+      Priority: 2
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - /*
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref frontendTargetGroup
+
+Outputs:
+  testAlbSecurityGroupId:
+    Description: Security Group ID attached to the ALB
+    Value: !Ref testAlbSecurityGroup
+    Export:
+      Name: !Sub "${environment}-${service}-test-alb-sg"
+  loadBalancerArn:
+    Description: ALB ARN
+    Value: !Ref testAppLoadBalancer
+  loadBalancerDNSName:
+    Description: DNS name of the ALB
+    Value: !GetAtt testAppLoadBalancer.DNSName
+  frontendTargetGroupArn:
+    Description: Frontend Target Group ARN
+    Value: !Ref frontendTargetGroup
+    Export:
+      Name: !Sub "${environment}-${service}-frontend-tg"
+  backendTargetGroupArn:
+    Description: Backend Target Group ARN
+    Value: !Ref backendTargetGroup
+    Export:
+      Name: !Sub "${environment}-${service}-backend-tg"
