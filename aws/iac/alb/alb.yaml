@@ -10,10 +10,6 @@ Parameters:
     Type: String
     Default: app
     Description: "The service or component name associated with the resources"
-  vpcStackService:
-    Type: String
-    Default: vpc
-    Description: "Service name used when exporting the VPC stack outputs"
 
 Resources:
   # 1. Security Group for the ALB (allows HTTP port 80 from internet)
