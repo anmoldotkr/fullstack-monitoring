@@ -58,7 +58,7 @@ Resources:
       Name: !Sub "${environment}-${service}-frontend-tg"
       Port: 80
       Protocol: HTTP
-      TargetType: ip
+      TargetType: instance
       VpcId:
         Fn::ImportValue: !Sub "${environment}-infra-VpcId"
       HealthCheckEnabled: true
@@ -77,7 +77,7 @@ Resources:
       Name: !Sub "${environment}-${service}-backend-tg"
       Port: 5000
       Protocol: HTTP
-      TargetType: ip
+      TargetType: instance
       VpcId:
         Fn::ImportValue: !Sub "${environment}-infra-VpcId"
       HealthCheckEnabled: true
