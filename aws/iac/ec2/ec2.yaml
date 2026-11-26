@@ -48,7 +48,7 @@ Resources:
     Properties:
       GroupDescription: Allow Nginx port 81 & 82
       VpcId: !ImportValue
-       - 'Fn::Sub': !Sub "${environment}-infra-VpcId"
+        'Fn::Sub': "${environment}-infra-VpcId"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 81
@@ -58,9 +58,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
-          SourceSecurityGroupId:
-          - !ImportValue
+          SourceSecurityGroupId: !ImportValue
             'Fn::Sub': "${environment}-alb-test-sg"
       SecurityGroupEgress:
         - IpProtocol: -1
@@ -71,25 +69,25 @@ Resources:
   testEc2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      Name: !Sub "${environment}-${service}"
       InstanceType: !Ref instanceType
-      SubnetId: 
-        - !ImportValue
+      SubnetId: !ImportValue
           'Fn::Sub': "${environment}-infra-PrivateSubnet1Id"
-      SecurityGroupIds: !Ref testEc2SecurityGroup
+      SecurityGroupIds:
+        - !Ref testEc2SecurityGroup
       IamInstanceProfile: !Ref testEc2InstanceProfile
-      ImageId: !Sub amiId
+      ImageId: !Ref amiId
       BlockDeviceMappings:
       - DeviceName: "/dev/sdm"
         Ebs:
           VolumeType: gp3
           VolumeSize: 10
-      NetworkInterfaces:
-        - AssociatePublicIpAddress: "false"
+      Tags:
+        - Key: Name
+          Value: !Sub "${environment}-${service}"
       UserData: 
         Fn::Base64: !Sub |
           #!/bin/bash
-         
+          
           sudo apt-get update -y
           sudo apt-get upgrade -y
 
