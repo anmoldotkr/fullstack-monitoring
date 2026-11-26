@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Template to create EC2 with configured private subnet"
+
+Parameters:
+  environment:
+    Type: String
+    Default: dev
+    Description: "The environment name (e.g., dev, test, prod)"
+  service:
+    Type: String
+    Default: app
+    Description: "The service or component name associated with the resources"
+  instanceType:
+    Type: String
+    AllowedValues: 
+     - t3.micro
+     - t2.small
+  amiId:
+    Type: String
+    Default: ami-0c30b7300f5fb34cd
+
+Resources:
+  testEc2InstanceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: !Sub "${environment}-${service}-role"
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: ec2.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+          - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        Tags:
+          - Key: Name
+            Value: !Sub "${environment}-${service}-role"
+  testEc2InstanceProfile:
+      Type: AWS::IAM::InstanceProfile
+      Properties:
+        InstanceProfileName: !Sub "${environment}-${service}-profile"
+        Roles:
+          - !Ref testEc2InstanceRole
+  testEc2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow Nginx port 81 & 82
+      VpcId: !ImportValue
+       - 'Fn::Sub': !Sub "${environment}-infra-VpcId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 81
+          ToPort: 81
+          CidrIp: 0.0.0.0/0
+          Description: Allow Nginx traffic on port 81
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          SourceSecurityGroupId:
+          - !ImportValue
+            'Fn::Sub': "${environment}-alb-test-sg"
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: !Sub "${environment}-${service}-sg"
+  testEc2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      Name: !Sub "${environment}-${service}"
+      InstanceType: !Ref instanceType
+      SubnetId: 
+        - !ImportValue
+          'Fn::Sub': "${environment}-infra-PrivateSubnet1Id"
+      SecurityGroupIds: !Ref testEc2SecurityGroup
+      IamInstanceProfile: !Ref testEc2InstanceProfile
+      ImageId: !Sub amiId
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sdm"
+        Ebs:
+          VolumeType: gp3
+          VolumeSize: 10
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "false"
+      
+
+
+
+        

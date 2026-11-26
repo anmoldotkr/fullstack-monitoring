@@ -138,7 +138,7 @@ Outputs:
     Description: Security Group ID attached to the ALB
     Value: !Ref testAlbSecurityGroup
     Export:
-      Name: !Sub "${environment}-${service}-test-alb-sg"
+      Name: !Sub "${environment}-${service}-test-sg"
   loadBalancerArn:
     Description: ALB ARN
     Value: !Ref testAppLoadBalancer
