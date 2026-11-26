@@ -35,11 +35,13 @@ jobs:
         env:
           ENVIRONMENT: ${{ inputs.environment }}
           SERVICE: ${{ inputs.service }}
+          INSTANCE_TYPE: ${{ inputs.instanceType }}
         run: |
           aws cloudformation deploy \
             --template-file ./aws/iac/ec2/ec2.yaml \
-            --stack-name "$ENVIRONMENT-$SERVICE-vpc" \
+            --stack-name "$ENVIRONMENT-$SERVICE" \
             --parameter-overrides \
                 environment="$ENVIRONMENT" \
                 service="$SERVICE" \
+                instanceType="$INSTANCE_TYPE" \
             --capabilities CAPABILITY_NAMED_IAM
