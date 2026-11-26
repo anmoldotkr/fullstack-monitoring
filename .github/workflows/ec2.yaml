@@ -9,7 +9,9 @@ on:
       service:
         required: true
         type: string
-
+      instanceType:
+        required: true
+        type: string
 # Requried when using OIDC (role-to-assume) with AWS
 permissions:
   id-token: write
