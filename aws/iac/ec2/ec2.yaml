@@ -118,8 +118,9 @@ Resources:
           sudo curl -SL https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
           sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-
-
-
-
-        
+Outputs:
+  testEc2:
+    Description: test ec2 instance id
+    Value: !Ref testEc2Instance
+    Export:
+      Name: !Sub "${environment}-${service}-instance-id"

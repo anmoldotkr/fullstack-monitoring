@@ -65,6 +65,9 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckPort: "80"
       HealthCheckPath: /
+      Targets:
+        - Id: !ImportValue
+            'Fn::Sub': "${environment}-ec2-instance-id"
       Matcher:
         HttpCode: "200-399"
       Tags:
@@ -84,6 +87,9 @@ Resources:
       HealthCheckProtocol: HTTP
       HealthCheckPort: "5000"
       HealthCheckPath: /api/health
+      Targets:
+      - Id: !ImportValue
+          'Fn::Sub': "${environment}-ec2-instance-id"
       Matcher:
         HttpCode: "200-399"
       Tags:
